@@ -1,5 +1,33 @@
 import streamlit as st
-import time
+import google.generativeai as genai
+
+# Configure the Gemini API key
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
+# Create the AI model
+model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
+
+
+def get_ai_ideas(transcript):
+    """Generates video ideas from a transcript using the Gemini AI."""
+    prompt = f"You are a viral video expert. Based on this transcript, generate 5 short-form video ideas, each on a new line:\n\n{transcript}"
+    response = model.generate_content(prompt)
+    return response.text.split('\n')
+
+
+def get_ai_script(idea, transcript):
+    """Generates a video script from an idea and transcript using the Gemini AI."""
+    prompt = f"You are a professional scriptwriter. Write a short, punchy, 60-second video script based on this idea: {idea}\n\nHere is the original transcript for context:\n{transcript}"
+    response = model.generate_content(prompt)
+    return response.text
+
+
+def revise_ai_script(script, feedback):
+    """Revises a script based on feedback using the Gemini AI."""
+    prompt = f"You are a script editor. Revise this script: {script}\n\nBased on this feedback: {feedback}"
+    response = model.generate_content(prompt)
+    return response.text
+
 
 st.set_page_config(layout="wide")
 
@@ -22,14 +50,7 @@ def main():
     # Step 2: Generate Ideas
     if st.button("1. Generate Ideas", key="generate_ideas"):
         with st.spinner("Generating ideas..."):
-            time.sleep(1)
-        st.session_state.ideas = [
-            "Idea 1: Turn the transcript into a rap song.",
-            "Idea 2: Create a parody of a famous movie scene.",
-            "Idea 3: Make a tutorial on how to do something mentioned in the transcript.",
-            "Idea 4: Create a documentary-style video about the topic.",
-            "Idea 5: Turn the transcript into a series of short, funny skits.",
-        ]
+            st.session_state.ideas = get_ai_ideas(transcript)
 
     # Step 3: Choose Your Idea
     if st.session_state.ideas:
@@ -41,24 +62,7 @@ def main():
         # Step 4: Generate Script for This Idea
         if st.button("2. Generate Script for This Idea", key="generate_script"):
             with st.spinner("Generating script..."):
-                time.sleep(1)
-            st.session_state.script = f"""
-            **Title:** {chosen_idea}
-
-            **Opening Scene:**
-
-            [SCENE START]
-
-            **INT. YOUTUBE STUDIO - DAY**
-
-            A young, energetic YOUTUBER stands in front of a green screen.
-
-            **YOUTUBER**
-            (to camera)
-            What's up, everyone! Welcome back to my channel. Today, we're going to do something a little different. We're going to turn this boring transcript into a rap song!
-
-            [SCENE END]
-            """
+                st.session_state.script = get_ai_script(chosen_idea, transcript)
 
     # Step 5: Your Generated Script
     if st.session_state.script:
@@ -77,8 +81,9 @@ def main():
         )
         if st.button("3. Revise Script", key="revise_script"):
             with st.spinner("Revising script..."):
-                time.sleep(1)
-            st.session_state.script += f"\n\n**Revision based on feedback:**\n{feedback}"
+                st.session_state.script = revise_ai_script(
+                    st.session_state.script, feedback
+                )
             st.experimental_rerun()
 
 
