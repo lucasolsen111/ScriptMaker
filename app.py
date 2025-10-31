@@ -1,5 +1,22 @@
 import streamlit as st
 import google.generativeai as genai
+import re  # We need this to find the titles
+
+# --- New Helper Function ---
+def get_idea_title(idea_text: str) -> str:
+    """Extracts just the 'Idea 1: Title' from the full idea text."""
+    # This searches for text in the format **Idea 1: Any Title**
+    match = re.search(r"\*\*(Idea \d+: [^\*]+)\*\*", idea_text)
+    if match:
+        return match.group(1).strip()  # Returns "Idea 1: The Title"
+    
+    # Fallback in case the AI format is slightly off
+    fallback_title = idea_text.split('\n')[0].strip()
+    if fallback_title:
+        return fallback_title
+    
+    return "Unnamed Idea"
+# ---------------------------
 
 # Configure the Gemini API key
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -24,6 +41,7 @@ TRANSCRIPT:
 {transcript}
 """
     response = model.generate_content(prompt)
+    # Split the ideas by "---" and filter out any empty strings
     return [idea.strip() for idea in response.text.split('---') if idea.strip()]
 
 
@@ -95,14 +113,31 @@ def main():
     # Step 3: Choose Your Idea
     if st.session_state.ideas:
         st.header("Step 2: Choose Your Idea")
-        chosen_idea = st.radio(
-            "Choose your idea:", st.session_state.ideas, key="chosen_idea"
+        
+        # --- THIS IS THE UI FIX ---
+        # Create a clean title for each idea
+        idea_titles = [get_idea_title(idea) for idea in st.session_state.ideas]
+        
+        # Create a mapping from the clean title back to the full idea
+        idea_lookup = {get_idea_title(idea): idea for idea in st.session_state.ideas}
+        
+        # Show the clean titles in the radio buttons
+        chosen_title = st.radio(
+            "Choose your idea:", idea_titles, key="chosen_idea"
         )
+        # -------------------------
 
         # Step 4: Generate Script for This Idea
         if st.button("2. Generate Script for This Idea", key="generate_script"):
             with st.spinner("Generating script..."):
-                st.session_state.script = get_ai_script(chosen_idea, transcript)
+                
+                # --- THIS IS THE OTHER PART OF THE FIX ---
+                # Get the full idea text from the chosen title
+                full_chosen_idea = idea_lookup[chosen_title]
+                
+                # Send the full idea to the script generator
+                st.session_state.script = get_ai_script(full_chosen_idea, transcript)
+                # ----------------------------------------
 
     # Step 5: Your Generated Script
     if st.session_state.script:
@@ -129,3 +164,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
