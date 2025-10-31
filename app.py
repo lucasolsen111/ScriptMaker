@@ -94,6 +94,11 @@ if "ideas" not in st.session_state:
     st.session_state.ideas = []
 if "script" not in st.session_state:
     st.session_state.script = ""
+# --- THIS IS THE FIX ---
+# We will also save the transcript that generates the ideas
+if "transcript" not in st.session_state:
+    st.session_state.transcript = ""
+# ----------------------
 
 
 def main():
@@ -101,14 +106,19 @@ def main():
 
     # Step 1: Paste Your Transcript
     st.header("Step 1: Paste Your Transcript")
-    transcript = st.text_area(
-        "Paste your transcript here...", height=200, key="transcript"
+    # This text_area just gathers the input
+    transcript_input = st.text_area(
+        "Paste your transcript here...", height=200, key="transcript_input_area"
     )
 
     # Step 2: Generate Ideas
     if st.button("1. Generate Ideas", key="generate_ideas"):
         with st.spinner("Generating ideas..."):
-            st.session_state.ideas = get_ai_ideas(transcript)
+            # --- THIS IS THE FIX ---
+            # When we generate ideas, we ALSO save the transcript to the session state
+            st.session_state.transcript = transcript_input
+            st.session_state.ideas = get_ai_ideas(st.session_state.transcript)
+            # ----------------------
 
     # Step 3: Choose Your Idea
     if st.session_state.ideas:
@@ -135,8 +145,8 @@ def main():
                 # Get the full idea text from the chosen title
                 full_chosen_idea = idea_lookup[chosen_title]
                 
-                # Send the full idea to the script generator
-                st.session_state.script = get_ai_script(full_chosen_idea, transcript)
+                # Send the full idea AND THE SAVED TRANSCRIPT to the script generator
+                st.session_state.script = get_ai_script(full_chosen_idea, st.session_state.transcript)
                 # ----------------------------------------
 
     # Step 5: Your Generated Script
