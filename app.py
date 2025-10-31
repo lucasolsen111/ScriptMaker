@@ -10,21 +10,61 @@ model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
 
 def get_ai_ideas(transcript):
     """Generates video ideas from a transcript using the Gemini AI."""
-    prompt = f"You are a viral video expert. Based on this transcript, generate 5 short-form video ideas, each on a new line:\n\n{transcript}"
+    prompt = f"""
+You are an expert Content Strategist and Viral Video Producer. Your job is to analyze a long-form YouTube transcript and find the "golden nuggets"—the most valuable, hook-worthy concepts that can be turned into self-contained, 30-60 second short-form videos (Reels, TikToks, Shorts).
+My goal is to get a list of *ideas* to give to my scripter. I do **not** want you to write the full script.
+Your task: Read the entire transcript I will paste below. Then, identify the 5-7 strongest concepts that can stand alone *without* the viewer needing the original video's context.
+For each idea, format your response *exactly* like this:
+**Idea 1: [Give the idea a 2-5 word title]**
+* **The Hook:** A 1-2 line, attention-grabbing question or statement to start the video.
+* **The Core Concept:** A 1-sentence summary of what this short video will be about.
+* **Source Quote (Optional):** The key phrase from the transcript that inspired this idea.
+---
+TRANSCRIPT:
+{transcript}
+"""
     response = model.generate_content(prompt)
-    return response.text.split('\n')
+    return [idea.strip() for idea in response.text.split('---') if idea.strip()]
 
 
 def get_ai_script(idea, transcript):
     """Generates a video script from an idea and transcript using the Gemini AI."""
-    prompt = f"You are a professional scriptwriter. Write a short, punchy, 60-second video script based on this idea: {idea}\n\nHere is the original transcript for context:\n{transcript}"
+    prompt = f"""
+You are an expert scriptwriter for a viral AI tools channel. Your persona is that of a smart, enthusiastic friend letting the audience in on an incredible secret tool or "hack."
+Your knowledge base contains saraev.txt, which defines your conversational tone, exciting pace, and simple, direct language. You must replicate this style precisely.
+Your task is to transform the user's research notes (the "Idea") about a specific AI tool into a complete, 75 - 125 word video script.
+MANDATORY SCRIPT FRAMEWORK:
+1.  **The Hook (1 sentence):** Start with a "stop signal".
+2.  **The Problem (1 sentence):** Immediately identify the pain point.
+3.  **The Solution (1-2 sentences):** Introduce the AI tool as the direct solution.
+4.  **The "How-To" (1-2 sentences):** Give a hyper-simple, 1-2 step explanation.
+5.  **The "Bonus" (Optional, 1 sentence):** Add a "Plus..." or "It also..." statement.
+6.  **The Call-to-Action (1 sentence):** Always end with a direct CTA (e.g., "Wanna try it? Comment [Keyword]...").
+FINAL OUTPUT RULES:
+* Your response must ONLY be the final script.
+* Do not add any introductory text (like "Here's your script:").
+---
+USER REQUEST:
+**Idea (Research Notes):**
+{idea}
+**Original Transcript (for context):**
+{transcript}
+"""
     response = model.generate_content(prompt)
     return response.text
 
 
 def revise_ai_script(script, feedback):
     """Revises a script based on feedback using the Gemini AI."""
-    prompt = f"You are a script editor. Revise this script: {script}\n\nBased on this feedback: {feedback}"
+    prompt = f"""
+You are an expert scriptwriter for a viral AI tools channel, following a strict 6-part framework.
+Your task is to revise the script provided based on the user's feedback. You MUST maintain the 6-part framework (Hook, Problem, Solution, How-To, Bonus, CTA) and the persona.
+---
+USER REQUEST:
+Original Script to Revise: {script}
+
+User Feedback: {feedback}
+"""
     response = model.generate_content(prompt)
     return response.text
 
